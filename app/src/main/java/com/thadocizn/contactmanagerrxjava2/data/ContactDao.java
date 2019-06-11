@@ -10,6 +10,8 @@ import com.thadocizn.contactmanagerrxjava2.model.Contact;
 
 import java.util.List;
 
+import io.reactivex.Flowable;
+
 /**
  * Created by charles on 10,June,2019
  */
@@ -17,18 +19,18 @@ import java.util.List;
 public interface ContactDao {
 
     @Insert
-    public  long addContact(Contact contact);
+     long addContact(Contact contact);
 
     @Update
-    public void updateContact(Contact contact);
+     void updateContact(Contact contact);
 
     @Delete
-    public void deleteContact(Contact contact);
+     void deleteContact(Contact contact);
 
     @Query("select * from contacts")
-    public List<Contact> getContacts();
+     Flowable<List<Contact>> getContacts();
 
     @Query("select * from contacts where contact_id ==:contactId")
-    public Contact getContact(long contactId);
+     Contact getContact(long contactId);
 
 }
