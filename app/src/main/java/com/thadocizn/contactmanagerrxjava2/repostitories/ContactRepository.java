@@ -127,5 +127,7 @@ public class ContactRepository {
         }));
     }
 
-
+    public void clear(){
+        disposable.clear();
+    }
 }
