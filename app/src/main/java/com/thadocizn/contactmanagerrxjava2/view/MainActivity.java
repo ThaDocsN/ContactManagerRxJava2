@@ -1,11 +1,14 @@
 package com.thadocizn.contactmanagerrxjava2.view;
 
+import android.arch.persistence.room.Room;
+import android.arch.persistence.room.RoomDatabase;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
@@ -38,12 +41,17 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        contactsAppDatabase = Room.databaseBuilder(getApplicationContext(),ContactsAppDatabase.class, "ContactDB").allowMainThreadQueries().build();
+
+        contactArrayList.addAll(contactsAppDatabase.getContactDAO().getContacts());
+
+        getRecycleViewer();
+
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                addAndEditContacts(false, null, -1);
             }
         });
     }
@@ -70,6 +78,16 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    private void getRecycleViewer(){
+
+        contactsAdapter = new ContactsAdapter(this, contactArrayList, MainActivity.this);
+
+        recyclerView = findViewById(R.id.rvContacts);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(contactsAdapter);
+
+    }
+
     public void addAndEditContacts(final boolean isUpdate, final Contact contact, final int position) {
         LayoutInflater layoutInflaterAndroid = LayoutInflater.from(getApplicationContext());
         View view = layoutInflaterAndroid.inflate(R.layout.layout_add_contact, null);
@@ -78,8 +96,8 @@ public class MainActivity extends AppCompatActivity {
         alertDialogBuilderUserInput.setView(view);
 
         TextView contactTitle = view.findViewById(R.id.new_contact_title);
-        final EditText newContact = view.findViewById(R.id.name);
-        final EditText contactEmail = view.findViewById(R.id.email);
+        final EditText newContact = view.findViewById(R.id.et_name);
+        final EditText contactEmail = view.findViewById(R.id.et_email);
 
         contactTitle.setText(!isUpdate ? "Add New Contact" : "Edit Contact");
 
