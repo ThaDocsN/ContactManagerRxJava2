@@ -1,11 +1,9 @@
 package com.thadocizn.contactmanagerrxjava2.view;
 
 import android.arch.persistence.room.Room;
-import android.arch.persistence.room.RoomDatabase;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -13,9 +11,9 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -26,6 +24,12 @@ import com.thadocizn.contactmanagerrxjava2.data.ContactsAppDatabase;
 import com.thadocizn.contactmanagerrxjava2.model.Contact;
 
 import java.util.ArrayList;
+import java.util.List;
+
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.functions.Consumer;
+import io.reactivex.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -33,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<Contact> contactArrayList = new ArrayList<>();
     private RecyclerView recyclerView;
     private ContactsAppDatabase contactsAppDatabase;
+    private CompositeDisposable disposable = new CompositeDisposable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,9 +48,9 @@ public class MainActivity extends AppCompatActivity {
 
         contactsAppDatabase = Room.databaseBuilder(getApplicationContext(),ContactsAppDatabase.class, "ContactDB").allowMainThreadQueries().build();
 
-        contactArrayList.addAll(contactsAppDatabase.getContactDAO().getContacts());
-
         getRecycleViewer();
+
+        getDisposable();
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -86,6 +91,26 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(contactsAdapter);
 
+    }
+
+    private void getDisposable(){
+        disposable.add(contactsAppDatabase.getContactDAO().getContacts()
+        .subscribeOn(Schedulers.computation())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<List<Contact>>() {
+                    @Override
+                    public void accept(List<Contact> contacts) throws Exception {
+
+                        contactArrayList.clear();
+                        contactArrayList.addAll(contacts);
+                        contactsAdapter.notifyDataSetChanged();
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+
+                    }
+                }));
     }
 
     public void addAndEditContacts(final boolean isUpdate, final Contact contact, final int position) {
@@ -158,9 +183,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void deleteContact(Contact contact, int position) {
 
-        contactArrayList.remove(position);
         contactsAppDatabase.getContactDAO().deleteContact(contact);
-        contactsAdapter.notifyDataSetChanged();
     }
 
     private void updateContact(String name, String email, int position) {
@@ -172,26 +195,17 @@ public class MainActivity extends AppCompatActivity {
 
         contactsAppDatabase.getContactDAO().updateContact(contact);
 
-        contactArrayList.set(position, contact);
+    }
 
-        contactsAdapter.notifyDataSetChanged();
-
-
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        disposable.dispose();
     }
 
     private void createContact(String name, String email) {
 
         long id = contactsAppDatabase.getContactDAO().addContact(new Contact(name,email, 0));
-
-
-        Contact contact = contactsAppDatabase.getContactDAO().getContact(id);
-
-        if (contact != null) {
-
-            contactArrayList.add(0, contact);
-            contactsAdapter.notifyDataSetChanged();
-
-        }
 
     }
 }
